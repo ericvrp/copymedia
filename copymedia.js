@@ -43,32 +43,41 @@ const writeHistory = (history, historyFilename) => {
 }
 
 //
+const yyyymmdd = date => {
+    const yyyy     = `${date.getFullYear()}`;
+    const month    = date.getMonth()+1;
+    const day      = date.getDate();
+    const mm       = (month < 10 ? "0" : "") + month;
+    const dd       = (day   < 10 ? "0" : "") + day;
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+const hhmmss = date => {
+    const hours        = date.getHours();
+    const minutes      = date.getMinutes() ;
+    const seconds      = date.getSeconds();
+    const hh           = (hours   < 10 ? "0" : "") + hours;
+    const mi           = (minutes < 10 ? "0" : "") + minutes;
+    const ss           = (seconds < 10 ? "0" : "") + seconds;
+    return `${hh}.${mi}.${ss}`;
+}
+
+//
 const copyMedia = media => {
     const newHistory = {}
     const sourcePathnames = getAllFiles(media.source).filter(f => media.extensions.includes(path.extname(f)));
 
     sourcePathnames.forEach(sourcePathname => {
         const stat = fs.statSync(sourcePathname);
-        const date = new Date(stat.mtimeMs);
 
-        const yyyy = `${date.getFullYear()}`;
-        const month = date.getMonth()+1;
-        const day = date.getDate();
-        const mm = (month < 10 ? "0" : "") + month;
-        const dd = (day   < 10 ? "0" : "") + day;
-        const yyyymmdd = `${yyyy}-${mm}-${dd}`;
+        const date               = projectName ? new Date() : new Date(stat.mtimeMs);
+        const destinationDirname = path.join(media.destination, `${date.getFullYear()}`, yyyymmdd(date) + (projectName ? " "+projectName : ""));
 
-        const hours = date.getHours();
-        const minutes =date.getMinutes() ;
-        const seconds = date.getSeconds();
-        const hh = (hours < 10 ? "0" : "") + hours;
-        const mi = (minutes < 10 ? "0" : "") + minutes;
-        const ss = (seconds < 10 ? "0" : "") + seconds;
-        const hhmmss = `${hh}.${mi}.${ss}`;
-
-        const destinationDirname = path.join(media.destination, yyyy, yyyymmdd);
-        const destinationPathname = path.join(destinationDirname, yyyymmdd+" "+hhmmss+" "+path.basename(sourcePathname));
-        const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname} ${destinationPathname}`;
+        const creationDate        = new Date(stat.mtimeMs);
+        const baseName            = yyyymmdd(creationDate)+" "+hhmmss(creationDate)+" "+path.basename(sourcePathname);
+        const destinationPathname = path.join(destinationDirname, baseName);
+        
+        const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname}`; // ${destinationPathname}`;
         // console.log(cacheString);
 
         if (history[cacheString]) {
@@ -118,8 +127,8 @@ const copyAllMedia = () => {
 }
 
 //
+const projectName = process.argv[2];
 const history = readHistory();
-
 copyAllMedia();
 
 // the end
