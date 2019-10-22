@@ -1,8 +1,5 @@
 const config = require('./config.json');
 
-// const { execSync } = require('child_process');
-
-//
 const fs = require('fs');
 const path = require('path');
 
@@ -15,29 +12,91 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
-    const historyJSON = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
-    console.log(`TODO: read and parse ${historyJSON.length} history files`);
-    // console.log(historyJSON)
+    const historyPathnames = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
     
-    return {
+    let h = {}
 
-    }
+    historyPathnames.forEach(historyPathname => {
+        const p = path.join('history', historyPathname);
+        const historyFile = fs.readFileSync(p);
+
+        if (historyFile.length > 0) {
+            const newHistory = JSON.parse(historyFile);
+            h = Object.assign(h, newHistory);
+        }
+    })
+
+    // console.log(h);
+    return h
 }
 
 //
 const writeHistory = (history, historyFilename) => {
-    console.log(`TODO: write new history file to ${historyFilename}`);
+    const historyString = JSON.stringify(history, null, 2);
+    // console.log('historyString.length', historyString.length)
+    if (historyString.length <= 2) return; // skip empty history
+
+    fs.writeFile(historyFilename, historyString, (err) => {
+        if (err) throw err;
+        // console.log(`wrote history file of ${historyString.length} bytes to ${historyFilename}`);
+    });
 }
 
 //
 const copyMedia = media => {
-    const sourceFiles = getAllFiles(media.source).filter(f => media.extensions.includes(path.extname(f)));
-    // console.log(sourceFiles);
+    const newHistory = {}
+    const sourcePathnames = getAllFiles(media.source).filter(f => media.extensions.includes(path.extname(f)));
 
-    console.log(`TODO: read ${sourceFiles.length} files from ${media.source}`);
-    console.log(`TODO: write ${sourceFiles.length} files to ${media.destination}`);
+    sourcePathnames.forEach(sourcePathname => {
+        const stat = fs.statSync(sourcePathname);
+        const date = new Date(stat.mtimeMs);
 
-    writeHistory({}, `history/${new Date()}.json`);
+        const yyyy = `${date.getFullYear()}`;
+        const month = date.getMonth()+1;
+        const day = date.getDate();
+        const mm = (month < 10 ? "0" : "") + month;
+        const dd = (day   < 10 ? "0" : "") + day;
+        const yyyymmdd = `${yyyy}-${mm}-${dd}`;
+
+        const hours = date.getHours();
+        const minutes =date.getMinutes() ;
+        const seconds = date.getSeconds();
+        const hh = (hours < 10 ? "0" : "") + hours;
+        const mi = (minutes < 10 ? "0" : "") + minutes;
+        const ss = (seconds < 10 ? "0" : "") + seconds;
+        const hhmmss = `${hh}.${mi}.${ss}`;
+
+        const destinationDirname = path.join(media.destination, yyyy, yyyymmdd);
+        const destinationPathname = path.join(destinationDirname, yyyymmdd+" "+hhmmss+" "+path.basename(sourcePathname));
+        const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname} ${destinationPathname}`;
+        // console.log(cacheString);
+
+        if (history[cacheString]) {
+            // console.log("skip", sourcePathname, "=>", destinationPathname);
+            return;
+        }
+
+        console.log(`copy ${sourcePathname} => ${destinationPathname}`);
+
+        const content = fs.readFileSync(sourcePathname);
+
+        if (!fs.existsSync(destinationDirname)) {
+            // console.log("create folder", destinationDirname);
+            fs.mkdirSync(destinationDirname);
+        }
+
+        fs.writeFile(destinationPathname, content, (err) => {
+            if (err) {
+                console.error(err);
+                // process.exit(1);
+                throw err;
+            }
+        });
+
+        history[cacheString] = newHistory[cacheString] = true;
+    });
+
+    writeHistory(newHistory, `history/${new Date().getTime()}.json`);
 }
 
 //
