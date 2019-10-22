@@ -30,15 +30,37 @@ const writeHistory = (history, historyFilename) => {
 }
 
 //
-const history = readHistory();
-
-config.forEach(conf => {
-    const sourceFiles = getAllFiles(conf.source).filter(f => conf.extensions.includes(path.extname(f)));
+const copyMedia = media => {
+    const sourceFiles = getAllFiles(media.source).filter(f => media.extensions.includes(path.extname(f)));
     // console.log(sourceFiles);
 
-    console.log(`TODO: read ${sourceFiles.length} files from ${conf.source}`);
-    console.log(`TODO: write ${sourceFiles.length} files to ${conf.destination}`);
+    console.log(`TODO: read ${sourceFiles.length} files from ${media.source}`);
+    console.log(`TODO: write ${sourceFiles.length} files to ${media.destination}`);
 
     writeHistory({}, `history/${new Date()}.json`);
-})
+}
 
+//
+const copyAllMedia = () => {
+    config.allMedia.forEach(media => {
+        try {
+            fs.readdirSync(media.source);
+        } catch (e) {
+            console.warn(`warning: ${media.source} is not available`);
+            return;
+        }
+
+        copyMedia(media);
+    })
+
+    if (config.loop) {
+        setTimeout(copyAllMedia, config.loopIntervalSeconds * 1000);
+    }
+}
+
+//
+const history = readHistory();
+
+copyAllMedia();
+
+// the end

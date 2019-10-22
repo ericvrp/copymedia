@@ -1,7 +1,11 @@
-[
-	{
-		"source": "E:/",
-		"extensions": [".MP4", ".ARW"],
-		"destination": "D:/ericvrp2.stackstorage.com/PhotosAndVideos"
-	}
-]
+{
+	"loop": true,
+	"loopIntervalSeconds": 5,
+	"allMedia": [
+		{
+			"source": "E:/",
+			"extensions": [".MP4", ".ARW"],
+			"destination": "D:/ericvrp2.stackstorage.com/PhotosAndVideos"
+		}
+	]
+}
