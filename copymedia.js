@@ -97,8 +97,8 @@ const copyMedia = media => {
         fs.writeFile(destinationPathname, content, (err) => {
             if (err) {
                 console.error(err);
-                // process.exit(1);
-                throw err;
+                process.exit(1);
+                // throw err;
             }
         });
 
@@ -121,13 +121,19 @@ const copyAllMedia = () => {
         copyMedia(media);
     })
 
-    if (config.loop) {
-        setTimeout(copyAllMedia, config.loopIntervalSeconds * 1000);
+    if (config.looping.enabled) {
+        setTimeout(copyAllMedia, config.looping.intervalInSeconds * 1000);
     }
 }
 
 //
 const projectName = process.argv[2];
+if (!projectName && config.requireProjectName) {
+    console.error("error: missing required projectName parameter");
+    process.exit(1);
+}
+// console.log(projectName);
+
 const history = readHistory();
 copyAllMedia();
 

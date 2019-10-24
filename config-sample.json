@@ -1,6 +1,9 @@
 {
-	"loop": false,
-	"loopIntervalSeconds": 5,
+	"requireProjectName": true,
+	"looping": {
+		"enabled": false,
+		"intervalInSeconds": 5
+	},
 	"allMedia": [
 		{
 			"source": "E:/",
