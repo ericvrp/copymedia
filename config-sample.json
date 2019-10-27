@@ -1,14 +1,26 @@
 {
 	"requireProjectName": true,
+	"simulate": false,
 	"looping": {
 		"enabled": false,
 		"intervalInSeconds": 5
 	},
 	"allMedia": [
 		{
+			"extensions": [".ARW"],
 			"source": "E:/",
-			"extensions": [".MP4", ".ARW"],
-			"destination": "D:/ericvrp2.stackstorage.com/PhotosAndVideos"
+			"destination": {
+				"path": "D:/ericvrp2.stackstorage.com/PhotosAndVideos",
+				"postfix": "/photos"
+			} 
+		},
+		{
+			"extensions": [".MP4"],
+			"source": "E:/",
+			"destination": {
+				"path": "D:/ericvrp2.stackstorage.com/PhotosAndVideos",
+				"postfix": "/videos"
+			} 
 		}
 	]
 }

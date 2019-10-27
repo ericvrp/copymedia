@@ -71,7 +71,7 @@ const copyMedia = media => {
         const stat = fs.statSync(sourcePathname);
 
         const date               = projectName ? new Date() : new Date(stat.mtimeMs);
-        const destinationDirname = path.join(media.destination, `${date.getFullYear()}`, yyyymmdd(date) + (projectName ? " "+projectName : ""));
+        const destinationDirname = path.join(media.destination.path, `${date.getFullYear()}`, yyyymmdd(date) + (projectName ? " "+projectName : ""), media.destination.postfix);
 
         const creationDate        = new Date(stat.mtimeMs);
         const baseName            = yyyymmdd(creationDate)+" "+hhmmss(creationDate)+" "+path.basename(sourcePathname);
@@ -85,27 +85,31 @@ const copyMedia = media => {
             return;
         }
 
-        console.log(`copy ${sourcePathname} => ${destinationPathname}`);
+        console.log(`${config.simulate ? "simulate " : ""}copy ${sourcePathname} => ${destinationPathname}`);
 
-        const content = fs.readFileSync(sourcePathname);
+        if (!config.simulate) {
+            const content = fs.readFileSync(sourcePathname);
 
-        if (!fs.existsSync(destinationDirname)) {
-            // console.log("create folder", destinationDirname);
-            fs.mkdirSync(destinationDirname);
-        }
-
-        fs.writeFile(destinationPathname, content, (err) => {
-            if (err) {
-                console.error(err);
-                process.exit(1);
-                // throw err;
+            if (!fs.existsSync(destinationDirname)) {
+                // console.log("create folder", destinationDirname);
+                fs.mkdirSync(destinationDirname, { recursive: true });
             }
-        });
+
+            fs.writeFile(destinationPathname, content, (err) => {
+                if (err) {
+                    console.error(err);
+                    process.exit(1);
+                    // throw err;
+                }
+            });
+        }
 
         history[cacheString] = newHistory[cacheString] = true;
     });
 
-    writeHistory(newHistory, `history/${new Date().getTime()}.json`);
+    if (!config.simulate) {
+        writeHistory(newHistory, `history/${new Date().getTime()}.json`);
+    }
 }
 
 //
@@ -114,7 +118,7 @@ const copyAllMedia = () => {
         try {
             fs.readdirSync(media.source);
         } catch (e) {
-            console.warn(`warning: ${media.source} is not available`);
+            console.warn(`warning: ${media.source} is not available for copying ${media.extensions}`);
             return;
         }
 
