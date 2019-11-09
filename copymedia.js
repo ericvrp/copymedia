@@ -12,6 +12,10 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
+    if (config.progressReport) {
+        console.log(`reading history files`);
+    }
+
     const historyPathnames = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
     
     let h = {}
@@ -32,6 +36,10 @@ const readHistory = () => {
 
 //
 const writeHistory = (history, historyFilename) => {
+    if (config.progressReport) {
+        console.log(`writing history file to ${historyFilename}`);
+    }
+
     const historyString = JSON.stringify(history, null, 2);
     // console.log('historyString.length', historyString.length)
     if (historyString.length <= 2) return; // skip empty history
@@ -62,73 +70,132 @@ const hhmmss = date => {
     return `${hh}.${mi}.${ss}`;
 }
 
+const mmss = t => {
+    const date         = new Date(t);
+    const minutes      = date.getMinutes() ;
+    const seconds      = date.getSeconds();
+    const mi           = (minutes < 10 ? "0" : "") + minutes;
+    const ss           = (seconds < 10 ? "0" : "") + seconds;
+    return `${mi}:${ss}`;
+}
+
+const percentage = (value, digitsBefore = 3, digitsAfter = 2) => {
+    let s = value.toFixed(digitsAfter); 
+    while (s.length <= digitsBefore + digitsAfter) s = ' ' + s;
+    return s + '%';
+}
+
 //
-const copyMedia = media => {
-    const newHistory = {}
+const getCopyItems = media => {
+    let copyItems = [];
+
     const sourcePathnames = getAllFiles(media.source).filter(f => media.extensions.includes(path.extname(f)));
 
     sourcePathnames.forEach(sourcePathname => {
         const stat = fs.statSync(sourcePathname);
 
         const date               = projectName ? new Date() : new Date(stat.mtimeMs);
-        const destinationDirname = path.join(media.destination.path, `${date.getFullYear()}`, yyyymmdd(date) + (projectName ? " "+projectName : ""), media.destination.postfix);
+        const destinationBaseDirname = path.join(media.destination.path, `${date.getFullYear()}`, yyyymmdd(date) + (projectName ? " "+projectName : ""));
+        const destinationDirname = path.join(destinationBaseDirname, media.destination.postfix);
 
         const creationDate        = new Date(stat.mtimeMs);
         const baseName            = yyyymmdd(creationDate)+" "+hhmmss(creationDate)+" "+path.basename(sourcePathname);
         const destinationPathname = path.join(destinationDirname, baseName);
         
-        const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname}`; // ${destinationPathname}`;
+        const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname}`;
         // console.log(cacheString);
 
-        if (history[cacheString]) {
-            // console.log("skip", sourcePathname, "=>", destinationPathname);
+        if (!history[cacheString]) {
+            copyItems.push({
+                cacheString,
+                sourcePathname,
+                destinationBaseDirname,
+                destinationDirname,
+                destinationPathname,
+                baseName,
+                size: stat.size
+            });
+        }
+    }); // next sourcePathname
+
+    return copyItems;
+} // end of getCopyItems(media)
+
+//
+const copyAllMedia = () => {
+    let copyItems = [];
+
+    if (config.progressReport) {
+        console.log(`creating list of files to be copied`);
+    }
+
+    config.allMedia.forEach(media => {
+        try {
+            fs.readdirSync(media.source);
+        } catch (e) {
+            // console.warn(`warning: ${media.source} is not available for copying ${media.extensions}`);
             return;
         }
 
-        console.log(`${config.simulate ? "simulate " : ""}copy ${sourcePathname} => ${destinationPathname}`);
+        copyItems = copyItems.concat( getCopyItems(media) );
+    })
+    totalSize = copyItems.reduce((acc, copyItem) => acc + copyItem.size, 0);
+    const GBtotal = totalSize / 1024 / 1024 / 1024;
+
+    let copiedSize = 0;
+    const newHistory = {};
+    const startTime = new Date();
+
+    if (config.progressReport) {
+        console.log(`copy ${GBtotal.toFixed(2)} GB`);
+    }
+
+    copyItems.forEach(copyItem => {
+        if (config.progressReport) {
+            const t = new Date() - startTime;
+            const done = copiedSize / totalSize;
+            // console.log(done);
+            const eta = done < 0.00001 ? 0 : t / done - t;
+            const MBcopied = copiedSize / 1024 / 1024;
+            console.log(`${mmss(t)} ${percentage(done * 100)} ETA in ${mmss(eta)} (${copyItem.baseName}) [${(MBcopied * 1000 / t).toFixed(2)} MB/s]`);
+        }
 
         if (!config.simulate) {
-            const content = fs.readFileSync(sourcePathname);
+            const content = fs.readFileSync(copyItem.sourcePathname);
 
-            if (!fs.existsSync(destinationDirname)) {
-                // console.log("create folder", destinationDirname);
-                fs.mkdirSync(destinationDirname, { recursive: true });
+            if (!fs.existsSync(copyItem.destinationDirname)) {
+                // console.log("create folder", copyItem.destinationDirname);
+                fs.mkdirSync(copyItem.destinationDirname, { recursive: true });
             }
 
-            fs.writeFile(destinationPathname, content, (err) => {
+            fs.writeFile(copyItem.destinationPathname, content, (err) => {
                 if (err) {
                     console.error(err);
                     process.exit(1);
                     // throw err;
                 }
             });
-        }
+        } // else simulate
 
-        history[cacheString] = newHistory[cacheString] = true;
-    });
+        copiedSize += copyItem.size;
+        history[copyItem.cacheString] = newHistory[copyItem.cacheString] = true;
+    }); // next copyItem
 
-    if (!config.simulate) {
-        writeHistory(newHistory, `history/${new Date().getTime()}.json`);
+    if (!config.simulate && copyItems.length > 0) {
+        newHistory['_destinationBaseDirname'] = copyItems[0].destinationBaseDirname;
+        // console.log(newHistory);
+        const historyFilename = `history/${new Date().getTime()}.json`;
+        writeHistory(newHistory, historyFilename);
     }
-}
 
-//
-const copyAllMedia = () => {
-    config.allMedia.forEach(media => {
-        try {
-            fs.readdirSync(media.source);
-        } catch (e) {
-            console.warn(`warning: ${media.source} is not available for copying ${media.extensions}`);
-            return;
-        }
-
-        copyMedia(media);
-    })
+    if (config.progressReport) {
+        console.log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
+    }
 
     if (config.looping.enabled) {
         setTimeout(copyAllMedia, config.looping.intervalInSeconds * 1000);
     }
-}
+} // end of copyAllMedia()
 
 //
 const projectName = process.argv[2];
@@ -137,6 +204,10 @@ if (!projectName && config.requireProjectName) {
     process.exit(1);
 }
 // console.log(projectName);
+
+if (config.simulate) {
+    console.log('simulation mode');
+}
 
 const history = readHistory();
 copyAllMedia();

@@ -1,5 +1,6 @@
 {
 	"requireProjectName": true,
+	"progressReport": true,
 	"simulate": false,
 	"looping": {
 		"enabled": false,
