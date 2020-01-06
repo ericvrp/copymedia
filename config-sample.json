@@ -9,6 +9,8 @@
 	"allMedia": [
 		{
 			"extensions": [".ARW"],
+			"set_xmp": ["stars", "color", "accept_reject"],
+			"set_exif": ["internet_rating"],
 			"source": "E:/",
 			"destination": {
 				"path": "D:/ericvrp2.stackstorage.com/PhotosAndVideos",

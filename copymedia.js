@@ -3,6 +3,10 @@ const config = require('./config.json');
 const fs = require('fs');
 const path = require('path');
 
+const set_xmp = require('./set_xmp');
+const set_exif = require('./set_exif');
+
+//
 const getAllFiles = dir =>
   fs.readdirSync(dir).reduce((files, file) => {
     const name = path.join(dir, file);
@@ -113,7 +117,8 @@ const getCopyItems = media => {
                 destinationDirname,
                 destinationPathname,
                 baseName,
-                size: stat.size
+                size: stat.size,
+                media,
             });
         }
     }); // next sourcePathname
@@ -162,6 +167,18 @@ const copyAllMedia = () => {
 
         if (!config.simulate) {
             const content = fs.readFileSync(copyItem.sourcePathname);
+
+            if (copyItem.media.set_xmp) {
+                copyItem.media.set_xmp.forEach(xmp => {
+                    set_xmp[xmp](copyItem);
+                })
+            }
+
+            if (copyItem.media.set_exif) {
+                copyItem.media.set_exif.forEach(exif => {
+                    set_exif[exif](copyItem);
+                })
+            }
 
             if (!fs.existsSync(copyItem.destinationDirname)) {
                 // console.log("create folder", copyItem.destinationDirname);
