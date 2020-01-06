@@ -20,12 +20,15 @@ const readHistory = () => {
         console.log(`reading history files`);
     }
 
-    const historyPathnames = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
-    
+    const historyFolder = path.join(__dirname, 'history')
+    // console.log('BEFORE readdirSync', historyFolder)
+    const historyPathnames = fs.readdirSync(historyFolder).filter(f => path.extname(f) === '.json');
+    // console.log('AFTER readdirSync', historyFolder)
+
     let h = {}
 
     historyPathnames.forEach(historyPathname => {
-        const p = path.join('history', historyPathname);
+        const p = path.join(historyFolder, historyPathname);
         const historyFile = fs.readFileSync(p);
 
         if (historyFile.length > 0) {
@@ -34,7 +37,10 @@ const readHistory = () => {
         }
     })
 
-    // console.log(h);
+    if (config.progressReport) {
+        console.log(`${Object.keys(h).length} prior imported media files`)
+    }
+
     return h
 }
 
@@ -207,7 +213,7 @@ const copyAllMedia = (_projectName) => {
     if (!config.simulate && copyItems.length > 0) {
         newHistory['_destinationBaseDirname'] = copyItems[0].destinationBaseDirname;
         // console.log(newHistory);
-        const historyFilename = `history/${new Date().getTime()}.json`;
+        const historyFilename = path.join(__dirname, `history`, `${new Date().getTime()}.json`);
         writeHistory(newHistory, historyFilename);
     }
 
