@@ -16,9 +16,9 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
-    if (config.progressReport) {
-        console.log(`reading history files`);
-    }
+    // if (config.progressReport) {
+    //     console.log(`reading history files`);
+    // }
 
     const historyPathnames = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
     
@@ -127,7 +127,11 @@ const getCopyItems = media => {
 } // end of getCopyItems(media)
 
 //
-const copyAllMedia = () => {
+const copyAllMedia = (_projectName) => {
+    global.projectName = _projectName
+    // console.log('_projectName', _projectName)
+    // console.log('projectName', projectName)
+
     let copyItems = [];
 
     if (config.progressReport) {
@@ -215,18 +219,30 @@ const copyAllMedia = () => {
 } // end of copyAllMedia()
 
 //
-const projectName = process.argv[2];
-if (!projectName && config.requireProjectName) {
-    console.error("error: missing required projectName parameter");
-    process.exit(1);
-}
-// console.log(projectName);
-
-if (config.simulate) {
-    console.log('simulation mode');
-}
+const standalone = !process.argv[0].includes('electron.exe')
+// console.log('copymedia.standalone', standalone)
 
 const history = readHistory();
-copyAllMedia();
+
+if (standalone) {
+    const _projectName = process.argv[2]; // in global namespace
+    if (!_projectName && config.requireProjectName) {
+        console.error("error: missing required projectName parameter");
+        process.exit(1);
+    }
+    // console.log(_projectName);
+
+    if (config.simulate) {
+        console.log('simulation mode');
+    }
+
+    copyAllMedia(_projectName);
+}
+
+
+module.exports = {
+    copyAllMedia
+}
+
 
 // the end

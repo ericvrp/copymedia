@@ -1,0 +1,15 @@
+{
+  "name": "copymedia",
+  "version": "1.0.0",
+  "description": "Quickly copy all new photos and videos from a drive to another location",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/electron/electron-quick-start",
+  "author": "Eric van Riet Paap",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^7.1.2"
+  }
+}
