@@ -16,9 +16,9 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
-    // if (config.progressReport) {
-    //     console.log(`reading history files`);
-    // }
+    if (config.progressReport) {
+        console.log(`reading history files`);
+    }
 
     const historyPathnames = fs.readdirSync('history').filter(f => path.extname(f) === '.json');
     
@@ -128,6 +128,8 @@ const getCopyItems = media => {
 
 //
 const copyAllMedia = (_projectName) => {
+    const history = readHistory();
+
     global.projectName = _projectName
     // console.log('_projectName', _projectName)
     // console.log('projectName', projectName)
@@ -135,7 +137,7 @@ const copyAllMedia = (_projectName) => {
     let copyItems = [];
 
     if (config.progressReport) {
-        console.log(`creating list of files to be copied`);
+        console.log(`creating list of files to be copied for project ${_projectName}`);
     }
 
     config.allMedia.forEach(media => {
@@ -219,12 +221,11 @@ const copyAllMedia = (_projectName) => {
 } // end of copyAllMedia()
 
 //
-const standalone = !process.argv[0].includes('electron.exe')
-// console.log('copymedia.standalone', standalone)
+// console.log(process.argv)
+const runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].includes('copymedia.exe')
+// console.log('runAsCli', runAsCli)
 
-const history = readHistory();
-
-if (standalone) {
+if (runAsCli) {
     const _projectName = process.argv[2]; // in global namespace
     if (!_projectName && config.requireProjectName) {
         console.error("error: missing required projectName parameter");

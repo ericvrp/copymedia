@@ -18,8 +18,10 @@ window.addEventListener('DOMContentLoaded', () => {
 //   return JSON.parse(data)
 // }
 
-const { copyAllMedia } = require('./copyMedia')
+// console.log('IN PRELOAD.JS')
+const { copyAllMedia } = require('./copyMedia.js')
+// console.log(copyAllMedia)
 window.copyAllMedia = function (_projectName) {
-  // console.log('_projectName', _projectName)
+  // console.log('copyAllMedia for project:', _projectName)
   copyAllMedia(_projectName)
 }
