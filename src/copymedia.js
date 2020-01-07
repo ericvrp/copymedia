@@ -1,10 +1,24 @@
-const config = require('./config.json');
-
 const fs = require('fs');
 const path = require('path');
 
+const config = require('./config.json');
 const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
+
+//
+let _callbackFunctions = {}
+
+const registerCallback = (name, cb) => {
+    _callbackFunctions[name] = _callbackFunctions[name] || [];
+    _callbackFunctions[name].push(cb);
+}
+
+const callbackFunction = (name, message) => {
+    _callbackFunctions[name].forEach(cb => cb(message));
+}
+
+const log = message => callbackFunction(`log`, message);
+
 
 //
 const getAllFiles = dir =>
@@ -16,14 +30,10 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
-    if (config.progressReport) {
-        console.log(`reading history files`);
-    }
+    log(`reading history files`);
 
     const historyFolder = path.join(__dirname, 'history')
-    // console.log('BEFORE readdirSync', historyFolder)
     const historyPathnames = fs.readdirSync(historyFolder).filter(f => path.extname(f) === '.json');
-    // console.log('AFTER readdirSync', historyFolder)
 
     let h = {}
 
@@ -37,26 +47,20 @@ const readHistory = () => {
         }
     })
 
-    if (config.progressReport) {
-        console.log(`${Object.keys(h).length} prior imported media files`)
-    }
-
+    log(`${Object.keys(h).length} prior imported media files`)
     return h
 }
 
 //
 const writeHistory = (history, historyFilename) => {
-    if (config.progressReport) {
-        console.log(`writing history file to ${historyFilename}`);
-    }
+    log(`writing history file to ${historyFilename}`);
 
     const historyString = JSON.stringify(history, null, 2);
-    // console.log('historyString.length', historyString.length)
     if (historyString.length <= 2) return; // skip empty history
 
     fs.writeFile(historyFilename, historyString, (err) => {
         if (err) throw err;
-        // console.log(`wrote history file of ${historyString.length} bytes to ${historyFilename}`);
+        // log(`wrote history file of ${historyString.length} bytes to ${historyFilename}`);
     });
 }
 
@@ -113,7 +117,7 @@ const getCopyItems = media => {
         const destinationPathname = path.join(destinationDirname, baseName);
         
         const cacheString = `${stat.size} ${stat.mtimeMs} ${sourcePathname}`;
-        // console.log(cacheString);
+        // log(cacheString);
 
         if (!history[cacheString]) {
             copyItems.push({
@@ -134,23 +138,18 @@ const getCopyItems = media => {
 
 //
 const copyAllMedia = (_projectName) => {
+    global.projectName = _projectName
+    log(`creating list of files to be copied for project ${projectName}`);
+
     const history = readHistory();
 
-    global.projectName = _projectName
-    // console.log('_projectName', _projectName)
-    // console.log('projectName', projectName)
-
     let copyItems = [];
-
-    if (config.progressReport) {
-        console.log(`creating list of files to be copied for project ${_projectName}`);
-    }
 
     config.allMedia.forEach(media => {
         try {
             fs.readdirSync(media.source);
         } catch (e) {
-            // console.warn(`warning: ${media.source} is not available for copying ${media.extensions}`);
+            // log(`warning: ${media.source} is not available for copying ${media.extensions}`);
             return;
         }
 
@@ -163,19 +162,15 @@ const copyAllMedia = (_projectName) => {
     const newHistory = {};
     const startTime = new Date();
 
-    if (config.progressReport) {
-        console.log(`copy ${GBtotal.toFixed(2)} GB`);
-    }
+    log(`copy ${GBtotal.toFixed(2)} GB`);
 
     copyItems.forEach(copyItem => {
-        if (config.progressReport) {
-            const t = new Date() - startTime;
-            const done = copiedSize / totalSize;
-            // console.log(done);
-            const eta = done < 0.00001 ? 0 : t / done - t;
-            const MBcopied = copiedSize / 1024 / 1024;
-            console.log(`${mmss(t)} ${percentage(done * 100)} ETA in ${mmss(eta)} (${copyItem.baseName}) [${(MBcopied * 1000 / t).toFixed(2)} MB/s]`);
-        }
+        const t = new Date() - startTime;
+        const done = copiedSize / totalSize;
+        // log(done);
+        const eta = done < 0.00001 ? 0 : t / done - t;
+        const MBcopied = copiedSize / 1024 / 1024;
+        log(`${mmss(t)} ${percentage(done * 100)} ETA in ${mmss(eta)} (${copyItem.baseName}) [${(MBcopied * 1000 / t).toFixed(2)} MB/s]`);
 
         if (!config.simulate) {
             const content = fs.readFileSync(copyItem.sourcePathname);
@@ -193,15 +188,15 @@ const copyAllMedia = (_projectName) => {
             }
 
             if (!fs.existsSync(copyItem.destinationDirname)) {
-                // console.log("create folder", copyItem.destinationDirname);
+                // log(`create folder ${copyItem.destinationDirname}`);
                 fs.mkdirSync(copyItem.destinationDirname, { recursive: true });
             }
 
             fs.writeFile(copyItem.destinationPathname, content, (err) => {
                 if (err) {
-                    console.error(err);
-                    process.exit(1);
-                    // throw err;
+                    log(`Write error on ${copyItem.destinationPathname}`);
+                    log(err.toString());
+                    // process.exit(1);
                 }
             });
         } // else simulate
@@ -212,14 +207,12 @@ const copyAllMedia = (_projectName) => {
 
     if (!config.simulate && copyItems.length > 0) {
         newHistory['_destinationBaseDirname'] = copyItems[0].destinationBaseDirname;
-        // console.log(newHistory);
+        // log(newHistory);
         const historyFilename = path.join(__dirname, `history`, `${new Date().getTime()}.json`);
         writeHistory(newHistory, historyFilename);
     }
 
-    if (config.progressReport) {
-        console.log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
-    }
+    log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
 
     if (config.looping.enabled) {
         setTimeout(copyAllMedia, config.looping.intervalInSeconds * 1000);
@@ -227,29 +220,32 @@ const copyAllMedia = (_projectName) => {
 } // end of copyAllMedia()
 
 //
-// console.log(process.argv)
-const runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].includes('copymedia.exe')
-// console.log('runAsCli', runAsCli)
+// log(process.argv);
+const runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].includes('copymedia.exe');
+// log(`runAsCli ${runAsCli}`);
 
 if (runAsCli) {
+    registerCallback(`log`, message => { if (config.progressReport) console.log(message); } )
+
     const _projectName = process.argv[2]; // in global namespace
     if (!_projectName && config.requireProjectName) {
-        console.error("error: missing required projectName parameter");
+        log(`error: missing required projectName parameter`);
         process.exit(1);
     }
-    // console.log(_projectName);
+    // log(_projectName);
 
     if (config.simulate) {
-        console.log('simulation mode');
+        log('simulation mode');
     }
 
     copyAllMedia(_projectName);
 }
 
-
+//
 module.exports = {
+    registerCallback,
+    callbackFunction,
     copyAllMedia
 }
-
 
 // the end

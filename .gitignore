@@ -61,7 +61,6 @@ typings/
 .next
 
 # copymedia specific
-config.json
-history/*.json
+src/history/*.json
 build
 

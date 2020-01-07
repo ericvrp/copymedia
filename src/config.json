@@ -13,7 +13,7 @@
 			"set_exif": ["internet_rating"],
 			"source": "E:/",
 			"destination": {
-				"path": "D:/ericvrp2.stackstorage.com/PhotosAndVideos",
+				"path": "C:/Users/eric/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
 				"postfix": "/photos"
 			} 
 		},
@@ -21,7 +21,7 @@
 			"extensions": [".MP4"],
 			"source": "E:/",
 			"destination": {
-				"path": "D:/ericvrp2.stackstorage.com/PhotosAndVideos",
+				"path": "C:/Users/eric/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
 				"postfix": "/videos"
 			} 
 		}

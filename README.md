@@ -2,7 +2,15 @@
 Quickly copy all new photos and videos from a drive to another location
 
 ## INSTALL
-Copy config-sample.json to config.json and customize config.json
+npm install
 
 ## RUN
-node copymedia.js [projectName]
+Run with a GUI
+> npm start
+
+Build executable with gui
+> npm run build
+
+Run without a GUI 
+> node src/copymedia.js [projectName]
+
