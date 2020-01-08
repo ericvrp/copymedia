@@ -12,8 +12,13 @@
   </head>
   <body>
     <center>
-      Project <input type="text" id="projectName" />
-      <button onclick="copyAllMedia( document.getElementById('projectName').value )">Copy all media</button>
+      <p>
+        Project <input type="text" id="projectName" />
+        <button onclick="copyAllMedia( document.getElementById('projectName').value )" id="copyMediaButton" type="submit">Copy all media</button>
+      </p>
+      <p>
+        <pre id="copymedia-status"></pre>
+      </p>
     </center>
   </body>
 </html>

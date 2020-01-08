@@ -14,10 +14,12 @@ const registerCallback = (name, cb) => {
 }
 
 const callbackFunction = (name, message) => {
+    if (!_callbackFunctions[name]) return log(`error: callbackFunction "${name}" not registered`);
     _callbackFunctions[name].forEach(cb => cb(message));
 }
 
 const log = message => callbackFunction(`log`, message);
+const finished = message => callbackFunction(`finished`, message);
 
 
 //
@@ -30,7 +32,7 @@ const getAllFiles = dir =>
 
 //
 const readHistory = () => {
-    log(`reading history files`);
+    log(`Reading history files`);
 
     const historyFolder = path.join(__dirname, 'history')
     const historyPathnames = fs.readdirSync(historyFolder).filter(f => path.extname(f) === '.json');
@@ -53,14 +55,14 @@ const readHistory = () => {
 
 //
 const writeHistory = (history, historyFilename) => {
-    log(`writing history file to ${historyFilename}`);
+    log(`Writing history file to ${historyFilename}`);
 
     const historyString = JSON.stringify(history, null, 2);
     if (historyString.length <= 2) return; // skip empty history
 
     fs.writeFile(historyFilename, historyString, (err) => {
         if (err) throw err;
-        // log(`wrote history file of ${historyString.length} bytes to ${historyFilename}`);
+        // log(`Wrote history file of ${historyString.length} bytes to ${historyFilename}`);
     });
 }
 
@@ -139,7 +141,7 @@ const getCopyItems = media => {
 //
 const copyAllMedia = (_projectName) => {
     global.projectName = _projectName
-    log(`creating list of files to be copied for project ${projectName}`);
+    log(`Copy all media for project ${projectName}`);
 
     const history = readHistory();
 
@@ -162,7 +164,7 @@ const copyAllMedia = (_projectName) => {
     const newHistory = {};
     const startTime = new Date();
 
-    log(`copy ${GBtotal.toFixed(2)} GB`);
+    log(`Copy ${GBtotal.toFixed(2)} GB`);
 
     copyItems.forEach(copyItem => {
         const t = new Date() - startTime;
@@ -188,14 +190,14 @@ const copyAllMedia = (_projectName) => {
             }
 
             if (!fs.existsSync(copyItem.destinationDirname)) {
-                // log(`create folder ${copyItem.destinationDirname}`);
+                // log(`Create folder ${copyItem.destinationDirname}`);
                 fs.mkdirSync(copyItem.destinationDirname, { recursive: true });
             }
 
             fs.writeFile(copyItem.destinationPathname, content, (err) => {
                 if (err) {
-                    log(`Write error on ${copyItem.destinationPathname}`);
                     log(err.toString());
+                    finished(`error: failed to write to ${copyItem.destinationPathname}`);
                     // process.exit(1);
                 }
             });
@@ -214,6 +216,8 @@ const copyAllMedia = (_projectName) => {
 
     log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
 
+    finished(`Copied all media for project ${projectName}`);
+
     if (config.looping.enabled) {
         setTimeout(copyAllMedia, config.looping.intervalInSeconds * 1000);
     }
@@ -226,16 +230,17 @@ const runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].i
 
 if (runAsCli) {
     registerCallback(`log`, message => { if (config.progressReport) console.log(message); } )
+    registerCallback(`finished`, message => log(message) )
 
     const _projectName = process.argv[2]; // in global namespace
     if (!_projectName && config.requireProjectName) {
-        log(`error: missing required projectName parameter`);
+        log(`error: Missing required projectName parameter!`);
         process.exit(1);
     }
     // log(_projectName);
 
     if (config.simulate) {
-        log('simulation mode');
+        log('Simulation mode');
     }
 
     copyAllMedia(_projectName);
