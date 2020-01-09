@@ -1,6 +1,9 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
+
+const { copyAllMedia } = require('./copyMedia.js')
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -25,7 +28,7 @@ function createWindow () {
   mainWindow.loadFile('src/index.html')
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   //
   mainWindow.on('ready-to-show', function () {
@@ -61,3 +64,9 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+ipcMain.on('copyAllMedia', (event, {projectName}) => {
+  copyAllMedia(projectName, {
+    'log': message => { console.log(message); event.sender.send('log', message); },
+    'finished': () => { console.log('copyAllMedia-finished'); event.sender.send('copyAllMedia-finished'); },
+  })
+})

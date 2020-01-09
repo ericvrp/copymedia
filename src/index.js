@@ -1,22 +1,17 @@
-const { registerCallback, copyAllMedia } = require('./copyMedia.js')
+const { ipcRenderer } = require('electron')
 
-const replaceText = (selector, text) => {
-    const element = document.getElementById(selector)
-    if (element) element.innerText = text
-} 
 
-registerCallback(`log`, message => {
+window.copyAllMedia = projectName => {
+    document.getElementById(`copyMediaButton`).disabled = true // prefend multiple runs
+    ipcRenderer.send(`copyAllMedia`, {projectName})
+}
+
+ipcRenderer.on('log', (event, message) => {
     console.log(message)
-    replaceText(`copymedia-status`, message)
-
-    document.getElementById(`copyMediaButton`).disabled = true
+    document.getElementById(`copymedia-status`).innerText = message
 })
 
-registerCallback(`finished`, message => {
-    console.log(message)
-    replaceText(`copymedia-status`, message)
-
+ipcRenderer.on(`copyAllMedia-finished`, (event) => {
+    console.log('copyAllMedia-finished')
     document.getElementById(`copyMediaButton`).disabled = false // allow another run
 })
-
-window.copyAllMedia = copyAllMedia

@@ -6,20 +6,13 @@ const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
 
 //
-let _callbackFunctions = {}
-
-const registerCallback = (name, cb) => {
-    _callbackFunctions[name] = _callbackFunctions[name] || [];
-    _callbackFunctions[name].push(cb);
-}
-
 const callbackFunction = (name, message) => {
-    if (!_callbackFunctions[name]) return log(`error: callbackFunction "${name}" not registered`);
-    _callbackFunctions[name].forEach(cb => cb(message));
+    if (!callbackFunctions[name]) return console.log(`error: callbackFunction "${name}" not found`);
+    callbackFunctions[name](message);
 }
 
 const log = message => callbackFunction(`log`, message);
-const finished = message => callbackFunction(`finished`, message);
+const finished = () => callbackFunction(`finished`);
 
 
 //
@@ -137,15 +130,18 @@ const getCopyItems = media => {
 } // end of getCopyItems(media)
 
 //
-const copyAllMedia = (_projectName) => {
+const copyAllMedia = (_projectName, _callbackFunctions) => {
+    projectName = _projectName // global
+    callbackFunctions = _callbackFunctions // global
+
     if (!_projectName && config.requireProjectName) {
-        finished(`error: no projectName`);
+        log(`error: no projectName`);
+        finished();
         return;
     }
 
     log(`Copy all media for project ${_projectName}`);
 
-    global.projectName = _projectName
     global.historyCache = readHistoryCache();
 
     let copyItems = [];
@@ -200,7 +196,8 @@ const copyAllMedia = (_projectName) => {
             fs.writeFile(copyItem.destinationPathname, content, (err) => {
                 if (err) {
                     log(err.toString());
-                    finished(`error: failed to write to ${copyItem.destinationPathname}`);
+                    log(`error: failed to write to ${copyItem.destinationPathname}`);
+                    finished();
                     return;
                 }
             });
@@ -219,30 +216,25 @@ const copyAllMedia = (_projectName) => {
 
     log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
 
-    finished(`Copied all media for project ${projectName}`); // does this properly finish all pending writes on the commandline? (because of process.exit..)
-} // end of copyAllMedia()
+    log(`Copied all media for project ${projectName}`); // does this properly finish all pending writes on the commandline? (because of process.exit..)
+    finished();
+} // end of copyAllMedia(_projectName,_callbackFunctions)
 
 
 //
-// log(process.argv);
+// console.log(process.argv);
 global.runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].includes('copymedia.exe');
-// log(`runAsCli ${runAsCli}`);
+// console.log(`runAsCli ${runAsCli}`);
 
 if (runAsCli) {
-    registerCallback(`log`, message => { if (config.progressReport) console.log(message); } )
-    registerCallback(`finished`, message => { console.log(message); process.exit(1); } )
-
-    if (config.simulate) {
-        log('Simulation mode');
-    }
-
-    copyAllMedia(process.argv[2]);
+    copyAllMedia(process.argv[2], {
+        'log': message => { if (config.progressReport) console.log(message); },
+        'finished': () => { console.log('finished'); process.exit(1); },
+    });
 }
 
 //
 module.exports = {
-    registerCallback,
-    callbackFunction,
     copyAllMedia
 }
 
