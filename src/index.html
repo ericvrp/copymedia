@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 
-<script src="./preload.js"></script>
-
 <html>
   <head>
     <meta charset="UTF-8">
@@ -9,6 +7,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
     <title>Copy Media</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <center>
@@ -20,5 +19,9 @@
         <pre id="copymedia-status"></pre>
       </p>
     </center>
+
+    <script>
+      require('./index.js')
+    </script>    
   </body>
 </html>

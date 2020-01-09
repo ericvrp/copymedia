@@ -2,10 +2,6 @@
 	"requireProjectName": true,
 	"progressReport": true,
 	"simulate": false,
-	"looping": {
-		"enabled": false,
-		"intervalInSeconds": 5
-	},
 	"allMedia": [
 		{
 			"extensions": [".ARW"],

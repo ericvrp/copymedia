@@ -10,9 +10,11 @@ function createWindow () {
   // console.log("LOOKING FOR PRELOAD.JS IN", path.join(__dirname, 'preload.js'))
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    // width: 800,
+    // height: 600,
     // fullscreen: true,
+    // frame: false,
+    show: false, // show only once ready-to-show
     webPreferences: {
       // preload: path.join(__dirname, 'preload.js')
       nodeIntegration: true
@@ -23,7 +25,12 @@ function createWindow () {
   mainWindow.loadFile('src/index.html')
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
+
+  //
+  mainWindow.on('ready-to-show', function () {
+    mainWindow.show();
+  })
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
