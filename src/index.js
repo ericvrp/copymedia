@@ -6,6 +6,11 @@ window.copyAllMedia = projectName => {
     ipcRenderer.send(`copyAllMedia`, {projectName})
 }
 
+ipcRenderer.on('thumbnail', (event, url) => {
+    console.log(`thumbnail ${url}`)
+    document.getElementById(`copymedia-thumbnail`).src = url
+})
+
 ipcRenderer.on('log', (event, message) => {
     console.log(message)
     document.getElementById(`copymedia-status`).innerText = message

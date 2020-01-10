@@ -66,6 +66,7 @@ app.on('activate', function () {
 // code. You can also put them in separate files and require them here.
 ipcMain.on('copyAllMedia', (event, {projectName}) => {
   copyAllMedia(projectName, {
+    'thumbnail': url => { console.log(`thumbnail ${url}`); event.sender.send('thumbnail', url); },
     'log': message => { console.log(message); event.sender.send('log', message); },
     'finished': () => { console.log('copyAllMedia-finished'); event.sender.send('copyAllMedia-finished'); },
   })

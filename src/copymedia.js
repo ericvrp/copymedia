@@ -1,17 +1,25 @@
 const fs = require('fs');
 const path = require('path');
+const exec = require('child_process').exec;
 
 const config = require('./config.json');
 const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
 
+
+// settings...
+const useHistory = false
+const maxParallelCreateThumbnailTasks = 1;
+
+
 //
-const callbackFunction = (name, message) => {
+const callbackFunction = (name, data) => {
     if (!callbackFunctions[name]) return console.log(`error: callbackFunction "${name}" not found`);
-    callbackFunctions[name](message);
+    callbackFunctions[name](data);
 }
 
 const log = message => callbackFunction(`log`, message);
+const thumbnail = url => callbackFunction(`thumbnail`, url);
 const finished = () => callbackFunction(`finished`);
 
 
@@ -130,6 +138,37 @@ const getCopyItems = media => {
 } // end of getCopyItems(media)
 
 //
+let nCreateThumbnailTasks = 0;
+let nCreatedThumbnails = 0;
+
+const createThumbnail = copyItem => {
+    if (nCreateThumbnailTasks >= maxParallelCreateThumbnailTasks) {
+        // console.log(`thumbnail creation skips ${thumbnailPathname}`);
+        return;
+    }
+
+    const converter = `C:/Program Files/ImageMagick-7.0.9-Q16/magick`;
+    const thumbnailPathname = path.join(__dirname, 'thumbnails', nCreatedThumbnails.toString()) + '.jpg';
+    const createThumbnailCmd = `"${converter}" "${copyItem.destinationPathname}" "${thumbnailPathname}"`;
+    // console.log(createThumbnailCmd);
+
+    nCreateThumbnailTasks++;
+    nCreatedThumbnails++;
+    console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} creates ${thumbnailPathname}`);
+        
+    exec(createThumbnailCmd, (error, stdout, stderr) => {
+        console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} finished ${thumbnailPathname}`);
+        nCreateThumbnailTasks--;
+        // console.log(stdout);
+        // console.log(stderr);
+        if (error !== null) {
+            console.log(`exec error: ${error}`);
+        }
+        thumbnail(thumbnailPathname);
+    });
+} // end of createThumbnail(copyItem)
+
+//
 const copyAllMedia = (_projectName, _callbackFunctions) => {
     projectName = _projectName // global
     callbackFunctions = _callbackFunctions // global
@@ -142,7 +181,7 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
 
     log(`Copy all media for project ${_projectName}`);
 
-    global.historyCache = readHistoryCache();
+    global.historyCache = useHistory ? readHistoryCache() : {};
 
     let copyItems = [];
 
@@ -194,15 +233,26 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
             }
 
             const fd = fs.openSync(copyItem.destinationPathname, "w");
-            fs.write(fd, content, (err, bytesWritten, buffer) => {
-                fs.closeSync(fd); // note: explicit closing instead of waiting for garbage collection with writeFile
-                if (err) {
-                    log(err.toString());
-                    log(`error: failed to write to ${copyItem.destinationPathname}`);
-                    finished();
-                    return;
-                }
-            });
+
+            const writeSync = false
+            if (writeSync) {
+                fs.writeSync(fd, content);
+                fs.closeSync(fd);
+                createThumbnail(copyItem);
+            } else { // write async
+                fs.write(fd, content, (err, bytesWritten, buffer) => {
+                    fs.closeSync(fd); // note: explicit closing instead of waiting for garbage collection with writeFile
+                
+                    if (err) {
+                        log(err.toString());
+                        log(`error: failed to write to ${copyItem.destinationPathname}`);
+                        finished();
+                        return;
+                    }
+                
+                    createThumbnail(copyItem);
+                });
+            } // end of write async
         } // else simulate
 
         copiedSize += copyItem.size;
@@ -213,7 +263,7 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
         newHistoryCache['_destinationBaseDirname'] = copyItems[0].destinationBaseDirname;
         // log(newHistoryCache);
         const historyFilename = path.join(__dirname, `history`, `${new Date().getTime()}.json`);
-        writeHistoryCache(newHistoryCache, historyFilename);
+        if (useHistory) writeHistoryCache(newHistoryCache, historyFilename);
     }
 
     log(`${mmss(new Date() - startTime)} ${percentage(100)} of ${GBtotal.toFixed(2)} GB copied`);
@@ -230,6 +280,7 @@ global.runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].
 
 if (runAsCli) {
     copyAllMedia(process.argv[2], {
+        'thumbnail': url => { log(`thumbnail ${url}`); },
         'log': message => { if (config.progressReport) console.log(message); },
         'finished': () => { console.log('finished'); process.exit(1); },
     });

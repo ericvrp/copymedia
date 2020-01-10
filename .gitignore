@@ -62,5 +62,6 @@ typings/
 
 # copymedia specific
 src/history/*.json
+src/thumbnails/*.jpg
 build
 
