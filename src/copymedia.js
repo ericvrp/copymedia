@@ -174,7 +174,7 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
         log(`${mmss(t)} ${percentage(done * 100)} ETA in ${mmss(eta)} (${copyItem.baseName}) [${(MBcopied * 1000 / t).toFixed(2)} MB/s]`);
 
         if (!config.simulate) {
-            const content = fs.readFileSync(copyItem.sourcePathname);
+            const content = fs.readFileSync(copyItem.sourcePathname); // buffer
 
             if (copyItem.media.set_xmp) {
                 copyItem.media.set_xmp.forEach(xmp => {
@@ -193,7 +193,9 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
                 fs.mkdirSync(copyItem.destinationDirname, { recursive: true });
             }
 
-            fs.writeFile(copyItem.destinationPathname, content, (err) => {
+            const fd = fs.openSync(copyItem.destinationPathname, "w");
+            fs.write(fd, content, (err, bytesWritten, buffer) => {
+                fs.closeSync(fd); // note: explicit closing instead of waiting for garbage collection with writeFile
                 if (err) {
                     log(err.toString());
                     log(`error: failed to write to ${copyItem.destinationPathname}`);
