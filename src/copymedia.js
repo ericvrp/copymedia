@@ -1,10 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const exec = require('child_process').exec;
+const { promisify } = require('util')
 
 const config = require('./config.json');
 const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
+
+// some async functions
+const existsAsync = promisify(fs.exists)
+const mkdirAsync = promisify(fs.mkdir)
+const readFileAsync = promisify(fs.readFile)
+const writeFileAsync = promisify(fs.writeFile)
 
 
 // settings...
@@ -141,7 +148,7 @@ const getCopyItems = media => {
 let nCreateThumbnailTasks = 0;
 let nCreatedThumbnails = 0;
 
-const createThumbnail = copyItem => {
+const createThumbnail = async copyItem => {
     if (nCreateThumbnailTasks >= maxParallelCreateThumbnailTasks) {
         // console.log(`thumbnail creation skips ${thumbnailPathname}`);
         return;
@@ -154,10 +161,11 @@ const createThumbnail = copyItem => {
 
     nCreateThumbnailTasks++;
     nCreatedThumbnails++;
-    console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} creates ${thumbnailPathname}`);
-        
+    console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} started for ${thumbnailPathname}`);
+    
+    // could use execAsync here instead
     exec(createThumbnailCmd, (error, stdout, stderr) => {
-        console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} finished ${thumbnailPathname}`);
+        // console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} finished ${thumbnailPathname}`);
         nCreateThumbnailTasks--;
         // console.log(stdout);
         // console.log(stderr);
@@ -169,9 +177,10 @@ const createThumbnail = copyItem => {
 } // end of createThumbnail(copyItem)
 
 //
-const copyAllMedia = (_projectName, _callbackFunctions) => {
+const copyAllMedia = async (_projectName, _callbackFunctions) => {
     projectName = _projectName // global
     callbackFunctions = _callbackFunctions // global
+    nCreatedThumbnails = 0; // reset this global
 
     if (!_projectName && config.requireProjectName) {
         log(`error: no projectName`);
@@ -204,7 +213,7 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
 
     log(`Copy ${GBtotal.toFixed(2)} GB`);
 
-    copyItems.forEach(copyItem => {
+    for (const copyItem of copyItems) {
         const t = new Date() - startTime;
         const done = copiedSize / totalSize;
         // log(done);
@@ -213,7 +222,7 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
         log(`${mmss(t)} ${percentage(done * 100)} ETA in ${mmss(eta)} (${copyItem.baseName}) [${(MBcopied * 1000 / t).toFixed(2)} MB/s]`);
 
         if (!config.simulate) {
-            const content = fs.readFileSync(copyItem.sourcePathname); // buffer
+            const content = await readFileAsync(copyItem.sourcePathname);
 
             if (copyItem.media.set_xmp) {
                 copyItem.media.set_xmp.forEach(xmp => {
@@ -227,37 +236,18 @@ const copyAllMedia = (_projectName, _callbackFunctions) => {
                 })
             }
 
-            if (!fs.existsSync(copyItem.destinationDirname)) {
+            if (!(await existsAsync(copyItem.destinationDirname))) {
                 // log(`Create folder ${copyItem.destinationDirname}`);
-                fs.mkdirSync(copyItem.destinationDirname, { recursive: true });
+                await mkdirAsync(copyItem.destinationDirname, { recursive: true });
             }
 
-            const fd = fs.openSync(copyItem.destinationPathname, "w");
-
-            const writeSync = false
-            if (writeSync) {
-                fs.writeSync(fd, content);
-                fs.closeSync(fd);
-                createThumbnail(copyItem);
-            } else { // write async
-                fs.write(fd, content, (err, bytesWritten, buffer) => {
-                    fs.closeSync(fd); // note: explicit closing instead of waiting for garbage collection with writeFile
-                
-                    if (err) {
-                        log(err.toString());
-                        log(`error: failed to write to ${copyItem.destinationPathname}`);
-                        finished();
-                        return;
-                    }
-                
-                    createThumbnail(copyItem);
-                });
-            } // end of write async
+            await writeFileAsync(copyItem.destinationPathname, content);
+            /* await */ createThumbnail(copyItem);
         } // else simulate
 
         copiedSize += copyItem.size;
         historyCache[copyItem.cacheString] = newHistoryCache[copyItem.cacheString] = true;
-    }); // next copyItem
+    } //); // next copyItem
 
     if (!config.simulate && copyItems.length > 0) {
         newHistoryCache['_destinationBaseDirname'] = copyItems[0].destinationBaseDirname;

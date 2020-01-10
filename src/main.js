@@ -15,8 +15,8 @@ function createWindow () {
   mainWindow = new BrowserWindow({
     // width: 800,
     // height: 600,
-    // fullscreen: true,
     // frame: false,
+    fullscreen: true,
     show: false, // show only once ready-to-show
     webPreferences: {
       // preload: path.join(__dirname, 'preload.js')
@@ -28,7 +28,7 @@ function createWindow () {
   mainWindow.loadFile('src/index.html')
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   //
   mainWindow.on('ready-to-show', function () {
