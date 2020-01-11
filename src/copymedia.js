@@ -148,6 +148,18 @@ const getCopyItems = media => {
 let nCreateThumbnailTasks = 0;
 let nCreatedThumbnails = 0;
 
+//
+const removeThumbnails = () => {
+    const thumbnailsFolder = path.join(__dirname, 'thumbnails')
+    fs.readdirSync(thumbnailsFolder).map(filename => {
+        const thumbnailPathname = path.join(thumbnailsFolder, filename);
+        if (thumbnailPathname.toLowerCase().endsWith('.jpg')) {
+            // console.log(thumbnailPathname);
+            fs.unlinkSync(thumbnailPathname); // because nconvert otherwise creates 1_1.jpg instead of 1.jpg
+        } 
+    });
+}
+
 const createThumbnail = async copyItem => {
     if (nCreateThumbnailTasks >= config.thumbnail.maxParallelTasks) {
         // console.log(`thumbnail creation skips ${thumbnailPathname}`);
@@ -155,14 +167,15 @@ const createThumbnail = async copyItem => {
     }
 
     const thumbnailPathname = path.join(__dirname, 'thumbnails', nCreatedThumbnails.toString()) + '.jpg';
-    const createThumbnailCmd = `"${config.thumbnail.task}" "${copyItem.destinationPathname}" "${thumbnailPathname}"`;
+    const createThumbnailCmd = path.join(__dirname, config.thumbnail.task)
+        .replace('SRC', copyItem.destinationPathname)
+        .replace('DEST', thumbnailPathname);
     // console.log(createThumbnailCmd);
 
     nCreateThumbnailTasks++;
     nCreatedThumbnails++;
-    console.log(`thumbnail task ${nCreateThumbnailTasks}/${config.thumbnail.maxParallelTasks} started for ${thumbnailPathname}`);
+    // console.log(`thumbnail task ${nCreateThumbnailTasks}/${config.thumbnail.maxParallelTasks} started for ${thumbnailPathname}`);
     
-    // could use execAsync here instead
     execAsync(createThumbnailCmd)
         .then(() => {
             nCreateThumbnailTasks--;
@@ -184,6 +197,8 @@ const copyAllMedia = async (_projectName, _callbackFunctions) => {
     }
 
     log(`Copy all media for project ${_projectName}`);
+
+    removeThumbnails();
 
     global.historyCache = useHistory ? readHistoryCache() : {};
 

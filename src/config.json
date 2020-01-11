@@ -3,8 +3,8 @@
 	"progressReport": true,
 	"simulate": false,
 	"thumbnail": {
-		"maxParallelTasks": 1,
-		"task": "C:/Program Files/ImageMagick-7.0.9-Q16/magick"
+		"maxParallelTasks": 100000,
+		"task": "nconvert/nconvert.exe -out jpeg -embedded_jpeg -o \"DEST\" \"SRC\""
 	},
 	"allMedia": [
 		{
