@@ -8,6 +8,7 @@ const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
 
 // some async functions
+const execAsync = promisify(exec)
 const existsAsync = promisify(fs.exists)
 const mkdirAsync = promisify(fs.mkdir)
 const readFileAsync = promisify(fs.readFile)
@@ -16,7 +17,6 @@ const writeFileAsync = promisify(fs.writeFile)
 
 // settings...
 const useHistory = false
-const maxParallelCreateThumbnailTasks = 1;
 
 
 //
@@ -149,31 +149,26 @@ let nCreateThumbnailTasks = 0;
 let nCreatedThumbnails = 0;
 
 const createThumbnail = async copyItem => {
-    if (nCreateThumbnailTasks >= maxParallelCreateThumbnailTasks) {
+    if (nCreateThumbnailTasks >= config.thumbnail.maxParallelTasks) {
         // console.log(`thumbnail creation skips ${thumbnailPathname}`);
         return;
     }
 
-    const converter = `C:/Program Files/ImageMagick-7.0.9-Q16/magick`;
     const thumbnailPathname = path.join(__dirname, 'thumbnails', nCreatedThumbnails.toString()) + '.jpg';
-    const createThumbnailCmd = `"${converter}" "${copyItem.destinationPathname}" "${thumbnailPathname}"`;
+    const createThumbnailCmd = `"${config.thumbnail.task}" "${copyItem.destinationPathname}" "${thumbnailPathname}"`;
     // console.log(createThumbnailCmd);
 
     nCreateThumbnailTasks++;
     nCreatedThumbnails++;
-    console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} started for ${thumbnailPathname}`);
+    console.log(`thumbnail task ${nCreateThumbnailTasks}/${config.thumbnail.maxParallelTasks} started for ${thumbnailPathname}`);
     
     // could use execAsync here instead
-    exec(createThumbnailCmd, (error, stdout, stderr) => {
-        // console.log(`thumbnail task ${nCreateThumbnailTasks}/${maxParallelCreateThumbnailTasks} finished ${thumbnailPathname}`);
-        nCreateThumbnailTasks--;
-        // console.log(stdout);
-        // console.log(stderr);
-        if (error !== null) {
-            console.log(`exec error: ${error}`);
-        }
-        thumbnail(thumbnailPathname);
-    });
+    execAsync(createThumbnailCmd)
+        .then(() => {
+            nCreateThumbnailTasks--;
+            thumbnail(thumbnailPathname);
+        })
+        .catch(err => console.error(err))
 } // end of createThumbnail(copyItem)
 
 //
@@ -211,7 +206,7 @@ const copyAllMedia = async (_projectName, _callbackFunctions) => {
     const newHistoryCache = {};
     const startTime = new Date();
 
-    log(`Copy ${GBtotal.toFixed(2)} GB`);
+    log(`Copy ${copyItems.length} files with a total of ${GBtotal.toFixed(2)} GB`);
 
     for (const copyItem of copyItems) {
         const t = new Date() - startTime;
@@ -241,8 +236,8 @@ const copyAllMedia = async (_projectName, _callbackFunctions) => {
                 await mkdirAsync(copyItem.destinationDirname, { recursive: true });
             }
 
-            await writeFileAsync(copyItem.destinationPathname, content);
-            /* await */ createThumbnail(copyItem);
+            writeFileAsync(copyItem.destinationPathname, content)
+                .then(() => createThumbnail(copyItem));
         } // else simulate
 
         copiedSize += copyItem.size;

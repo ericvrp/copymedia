@@ -2,6 +2,10 @@
 	"requireProjectName": true,
 	"progressReport": true,
 	"simulate": false,
+	"thumbnail": {
+		"maxParallelTasks": 1,
+		"task": "C:/Program Files/ImageMagick-7.0.9-Q16/magick"
+	},
 	"allMedia": [
 		{
 			"extensions": [".ARW"],
