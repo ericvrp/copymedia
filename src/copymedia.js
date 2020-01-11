@@ -128,9 +128,16 @@ const getCopyItems = media => {
             const baseName            = yyyymmdd(creationDate)+" "+hhmmss(creationDate)+" "+path.basename(sourcePathname);
             const destinationPathname = path.join(destinationDirname, baseName);
 
+            const extname             = path.extname(sourcePathname).toLowerCase();
+            const isMovie             = ['.mov', '.mp4', '.flv', '.mkv'].includes(extname);
+
+            // console.log(sourcePathname, extname, isMovie);
+
             copyItems.push({
                 cacheString,
                 sourcePathname,
+                extname,
+                isMovie,
                 destinationBaseDirname,
                 destinationDirname,
                 destinationPathname,
@@ -162,12 +169,17 @@ const removeThumbnails = () => {
 
 const createThumbnail = async copyItem => {
     if (nCreateThumbnailTasks >= config.thumbnail.maxParallelTasks) {
-        // console.log(`thumbnail creation skips ${thumbnailPathname}`);
+        // console.log(`thumbnail creation skips ${copyItem.destinationPathname}`);
         return;
     }
 
+    // if (copyItem.isMovie) {
+    //     // console.log(`skip thumbnail creation for movie ${copyItem.destinationPathname}`); // note: ffmpeg here?
+    //     return;
+    // }
+
     const thumbnailPathname = path.join(__dirname, 'thumbnails', nCreatedThumbnails.toString()) + '.jpg';
-    const createThumbnailCmd = path.join(__dirname, config.thumbnail.task)
+    const createThumbnailCmd = path.join(__dirname, copyItem.isMovie ? config.thumbnail.taskForMovie : config.thumbnail.taskForPhoto)
         .replace('SRC', copyItem.destinationPathname)
         .replace('DEST', thumbnailPathname);
     // console.log(createThumbnailCmd);
@@ -181,7 +193,10 @@ const createThumbnail = async copyItem => {
             nCreateThumbnailTasks--;
             thumbnail(thumbnailPathname);
         })
-        .catch(err => console.error(err))
+        .catch(err => {
+            // console.log(`Can't create thumbnail of ${copyItem.destinationPathname}`);
+            console.error(err);
+        });
 } // end of createThumbnail(copyItem)
 
 //

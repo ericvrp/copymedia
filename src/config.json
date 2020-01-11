@@ -4,11 +4,12 @@
 	"simulate": false,
 	"thumbnail": {
 		"maxParallelTasks": 100000,
-		"task": "nconvert/nconvert.exe -out jpeg -embedded_jpeg -o \"DEST\" \"SRC\""
+		"taskForPhoto": "nconvert/nconvert.exe -out jpeg -embedded_jpeg -o \"DEST\" \"SRC\"",
+		"taskForMovie": "ffmpeg/ffmpeg -i \"SRC\" -vframes 1 \"DEST\""
 	},
 	"allMedia": [
 		{
-			"extensions": [".ARW"],
+			"extensions": [".ARW",".DNG"],
 			"set_xmp": ["stars", "color", "accept_reject"],
 			"set_exif": ["internet_rating"],
 			"source": "E:/",
