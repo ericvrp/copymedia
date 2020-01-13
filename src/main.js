@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 
+const config = require('./config.json');
 const { copyAllMedia } = require('./copyMedia.js')
 
 
@@ -69,5 +70,6 @@ ipcMain.on('copyAllMedia', (event, {projectName}) => {
     'thumbnail': url => { /*console.log(`thumbnail ${url}`);*/ event.sender.send('thumbnail', url); },
     'log': message => { /*console.log(message);*/ event.sender.send('log', message); },
     'finished': () => { /*console.log('copyAllMedia-finished');*/ event.sender.send('copyAllMedia-finished'); },
-  })
+  }, 
+  config)
 })

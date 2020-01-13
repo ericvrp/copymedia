@@ -3,7 +3,6 @@ const path = require('path');
 const exec = require('child_process').exec;
 const { promisify } = require('util')
 
-const config = require('./config.json');
 const set_xmp = require('./set_xmp');
 const set_exif = require('./set_exif');
 
@@ -200,9 +199,10 @@ const createThumbnail = async copyItem => {
 } // end of createThumbnail(copyItem)
 
 //
-const copyAllMedia = async (_projectName, _callbackFunctions) => {
+const copyAllMedia = async (_projectName, _callbackFunctions, _config) => {
     projectName = _projectName // global
     callbackFunctions = _callbackFunctions // global
+    config = _config // global
     nCreatedThumbnails = 0; // reset this global
 
     if (!_projectName && config.requireProjectName) {
@@ -294,11 +294,14 @@ global.runAsCli = !process.argv[0].includes('electron.exe') && !process.argv[0].
 // console.log(`runAsCli ${runAsCli}`);
 
 if (runAsCli) {
+    const config = require('./config.json');
+
     copyAllMedia(process.argv[2], {
         'thumbnail': url => { log(`thumbnail ${url}`); },
         'log': message => { if (config.progressReport) console.log(message); },
         'finished': () => { console.log('finished'); process.exit(1); },
-    });
+    },
+    config);
 }
 
 //
