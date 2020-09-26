@@ -1,30 +1,30 @@
 {
-	"requireProjectName": true,
-	"progressReport": true,
-	"simulate": false,
-	"thumbnail": {
-		"maxParallelTasks": 100000,
-		"taskForPhoto": "nconvert/nconvert.exe -out jpeg -embedded_jpeg -o \"DEST\" \"SRC\"",
-		"taskForMovie": "ffmpeg/ffmpeg -i \"SRC\" -vframes 1 \"DEST\""
-	},
-	"allMedia": [
-		{
-			"extensions": [".ARW",".DNG"],
-			"set_xmp": ["stars", "color", "accept_reject"],
-			"set_exif": ["internet_rating"],
-			"source": "E:/",
-			"destination": {
-				"path": "C:/Users/eric/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
-				"postfix": "/photos"
-			} 
-		},
-		{
-			"extensions": [".MP4"],
-			"source": "E:/",
-			"destination": {
-				"path": "C:/Users/eric/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
-				"postfix": "/videos"
-			} 
-		}
-	]
+  "requireProjectName": true,
+  "progressReport": true,
+  "simulate": false,
+  "thumbnail": {
+    "maxParallelTasks": 100000,
+    "taskForPhoto": "nconvert/nconvert.exe -out jpeg -embedded_jpeg -o \"DEST\" \"SRC\"",
+    "taskForMovie": "ffmpeg/ffmpeg -i \"SRC\" -vframes 1 \"DEST\""
+  },
+  "allMedia": [
+    {
+      "extensions": [".ARW", ".DNG"],
+      "set_xmp": ["stars", "color", "accept_reject"],
+      "set_exif": ["internet_rating"],
+      "source": "F:/",
+      "destination": {
+        "path": "E:/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
+        "postfix": "/photos"
+      }
+    },
+    {
+      "extensions": [".MP4"],
+      "source": "F:/",
+      "destination": {
+        "path": "E:/Nextcloud/ericvrp2.stackstorage.com/PhotosAndVideos",
+        "postfix": "/videos"
+      }
+    }
+  ]
 }

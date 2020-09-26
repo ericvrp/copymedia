@@ -15,7 +15,7 @@ const writeFileAsync = promisify(fs.writeFile)
 
 
 // settings...
-const useHistory = false
+const useHistory = true
 
 
 //
