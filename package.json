@@ -11,7 +11,7 @@
   "author": "Eric van Riet Paap",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^7.1.2",
+    "electron": "^11.5.0",
     "electron-packager": "^14.1.1"
   }
 }
